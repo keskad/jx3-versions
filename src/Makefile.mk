@@ -84,7 +84,7 @@ init: setup
 .PHONY: repository-resolve
 repository-resolve:
 # lets create any missing SourceRepository defined in .jx/gitops/source-config.yaml which are not in: versionStream/src/base/namespaces/jx/source-repositories
-	jx gitops repository create
+	jx gitops repository create --namespace ${JX_MAIN_NS}
 
 # lets configure the cluster gitops repository URL on the requirements if its missing
 	jx gitops repository resolve --source-dir $(OUTPUT_DIR)/namespaces
@@ -100,7 +100,7 @@ no-repository-resolve:
 .PHONY: gitops-scheduler
 gitops-scheduler:
 # lets generate the lighthouse configuration as we are in a development cluster
-	jx gitops scheduler
+	jx gitops scheduler -n ${JX_MAIN_NS}
 
 # lets force a rolling upgrade of lighthouse pods whenever we update the lighthouse config...
 	jx gitops hash --pod-spec --kind Deployment -s config-root/namespaces/${JX_MAIN_NS}/lighthouse-config/config-cm.yaml -s config-root/namespaces/${JX_MAIN_NS}/lighthouse-config/plugins-cm.yaml -d config-root/namespaces/${JX_MAIN_NS}/lighthouse
