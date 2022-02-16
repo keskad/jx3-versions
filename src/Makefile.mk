@@ -1,3 +1,5 @@
+JX_MAIN_TEAM ?= jx
+JX_MAIN_NS ?= jx
 FETCH_DIR := build/base
 TMP_TEMPLATE_DIR := build/tmp
 OUTPUT_DIR := config-root
@@ -74,7 +76,7 @@ no-copy-source:
 init: setup
 	@mkdir -p $(FETCH_DIR)
 	@mkdir -p $(TMP_TEMPLATE_DIR)
-	@mkdir -p $(OUTPUT_DIR)/namespaces/jx
+	@mkdir -p $(OUTPUT_DIR)/namespaces/${JX_MAIN_NS}
 	@mkdir -p $(FETCH_DIR)/cluster/crds
 
 
@@ -101,7 +103,7 @@ gitops-scheduler:
 	jx gitops scheduler
 
 # lets force a rolling upgrade of lighthouse pods whenever we update the lighthouse config...
-	jx gitops hash --pod-spec --kind Deployment -s config-root/namespaces/jx/lighthouse-config/config-cm.yaml -s config-root/namespaces/jx/lighthouse-config/plugins-cm.yaml -d config-root/namespaces/jx/lighthouse
+	jx gitops hash --pod-spec --kind Deployment -s config-root/namespaces/${JX_MAIN_NS}/lighthouse-config/config-cm.yaml -s config-root/namespaces/${JX_MAIN_NS}/lighthouse-config/plugins-cm.yaml -d config-root/namespaces/${JX_MAIN_NS}/lighthouse
 
 
 .PHONY: no-gitops-scheduler
@@ -170,7 +172,7 @@ post-build: $(GENERATE_SCHEDULER)
 	jx gitops annotate --dir $(OUTPUT_DIR) --selector app.kubernetes.io/name=ingress-nginx kapp.k14s.io/change-group=apps.jenkins-x.io/ingress-nginx
 
 # lets label all Namespace resources with the main namespace which creates them and contains the Environment resources
-	jx gitops label --dir $(OUTPUT_DIR)/cluster --kind=Namespace team=jx
+	jx gitops label --dir $(OUTPUT_DIR)/cluster --kind=Namespace team=${JX_MAIN_TEAM}
 
 # lets enable pusher-wave to perform rolling updates of any Deployment when its underlying Secrets get modified
 # by modifying the underlying secret store (e.g. vault / GSM / ASM) which then causes External Secrets to modify the k8s Secrets
@@ -229,7 +231,7 @@ secrets-populate:
 .PHONY: secrets-wait
 secrets-wait:
 # lets wait for the ExternalSecrets service to populate the mandatory Secret resources
-	VAULT_ADDR=$(VAULT_ADDR) jx secret wait -n jx
+	VAULT_ADDR=$(VAULT_ADDR) jx secret wait -n ${JX_MAIN_NS}
 
 .PHONY: git-setup
 git-setup:
@@ -272,7 +274,7 @@ status:
 .PHONY: apply-completed
 apply-completed: $(POST_APPLY_HOOK)
 # copy any git operator secrets to the jx namespace
-	jx secret copy --ns jx-git-operator --ignore-missing-to --to jx --selector git-operator.jenkins.io/kind=git-operator
+	jx secret copy --ns jx-git-operator --ignore-missing-to --to ${JX_MAIN_NS} --selector git-operator.jenkins.io/kind=git-operator
 	jx secret copy --ns jx-git-operator --ignore-missing-to --to tekton-pipelines --selector git-operator.jenkins.io/kind=git-operator
 
 	@echo "completed the boot Job"
@@ -355,4 +357,4 @@ release: lint
 .PHONY: dev-ns
 dev-ns:
 	@echo changing to the jx namespace to verify
-	jx ns jx --quiet
+	jx ns ${JX_MAIN_NS} --quiet
