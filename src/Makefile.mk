@@ -45,6 +45,21 @@ KUBECTL_APPLY_FLAGS ?= --force
 
 SOURCE_DIR ?= /workspace/source
 
+# Only stateless resources, excluding also Namespaces
+ALLOWED_PRUNE_RESOURCES = --prune-whitelist core/v1/ConfigMap \
+	--prune-whitelist core/v1/Endpoints \
+	--prune-whitelist core/v1/Pod \
+	--prune-whitelist core/v1/ReplicationController \
+	--prune-whitelist core/v1/Secret \
+	--prune-whitelist core/v1/Service \
+	--prune-whitelist batch/v1/Job \
+	--prune-whitelist batch/v1/CronJob \
+	--prune-whitelist networking.k8s.io/v1/Ingress \
+	--prune-whitelist apps/v1/DaemonSet \
+	--prune-whitelist apps/v1/Deployment \
+	--prune-whitelist apps/v1/ReplicaSet \
+	--prune-whitelist apps/v1/StatefulSet
+
 
 # NOTE to enable debug logging of 'helmfile template' to diagnose any issues with values.yaml templating
 # you can run:
@@ -287,9 +302,9 @@ kubectl-apply:
 	@echo "using kubectl to apply resources"
 
 # NOTE be very careful about these 2 labels as getting them wrong can remove stuff in you cluster!
-	kubectl apply $(KUBECTL_APPLY_FLAGS) --prune -l=gitops.jenkins-x.io/pipeline=customresourcedefinitions -R -f $(OUTPUT_DIR)/customresourcedefinitions
-	kubectl apply $(KUBECTL_APPLY_FLAGS) -l=gitops.jenkins-x.io/pipeline=cluster                           -R -f $(OUTPUT_DIR)/cluster
-	kubectl apply $(KUBECTL_APPLY_FLAGS) --prune -l=gitops.jenkins-x.io/pipeline=namespaces                -R -f $(OUTPUT_DIR)/namespaces
+	kubectl apply $(KUBECTL_APPLY_FLAGS) --prune -l=gitops.jenkins-x.io/pipeline=customresourcedefinitions ${ALLOWED_PRUNE_RESOURCES}  -R -f $(OUTPUT_DIR)/customresourcedefinitions
+	kubectl apply $(KUBECTL_APPLY_FLAGS) -l=gitops.jenkins-x.io/pipeline=cluster                           ${ALLOWED_PRUNE_RESOURCES}  -R -f $(OUTPUT_DIR)/cluster
+	kubectl apply $(KUBECTL_APPLY_FLAGS) --prune -l=gitops.jenkins-x.io/pipeline=namespaces                ${ALLOWED_PRUNE_RESOURCES}  -R -f $(OUTPUT_DIR)/namespaces
 
 # lets apply any infrastructure specific labels or annotations to enable IAM roles on ServiceAccounts etc
 	jx gitops postprocess
